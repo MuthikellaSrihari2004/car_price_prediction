@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Price Prediction - ML Project</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .model-info {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.95em;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .result-section {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 30px;
+            border-radius: 15px;
+            color: white;
+            text-align: center;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-section h2 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .predicted-price {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .confidence-range {
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+
+        .input-summary {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .input-summary h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .input-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .input-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+        }
+
+        .error-section {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            border-top: 1px solid #eee;
+        }
+
+        .icon {
+            font-size: 1.2em;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Car Price Prediction</h1>
+            <p>Machine Learning Price Estimator</p>
+            {% if model_info %}
+            <div class="model-info">
+                <strong>Model:</strong> {{ model_info.model_name }} | 
+                <strong>Accuracy (R²):</strong> {{ "%.2f"|format(model_info.r2_score * 100) }}%
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="content">
+            {% if error %}
+            <div class="error-section">
+                <strong>⚠️ Error:</strong> {{ error }}
+            </div>
+            {% endif %}
+
+            {% if prediction %}
+            <div class="result-section">
+                <h2>🎯 Predicted Car Price</h2>
+                <div class="predicted-price">{{ prediction }}</div>
+                <div class="confidence-range">
+                    Estimated Range: {{ lower_bound }} - {{ upper_bound }}
+                </div>
+                
+                <div class="input-summary">
+                    <h3>📋 Your Input</h3>
+                    <div class="input-summary-grid">
+                        <div class="input-item">
+                            <span><strong>Brand:</strong></span>
+                            <span>{{ input_data.brand }}</span>
+                        </div>
+                        <div class="input-item">
+                            <span><strong>Year:</strong></span>
+                            <span>{{ input_data.model_year }}</span>
+                        </div>
+                        <div class="input-item">
+                            <span><strong>Fuel Type:</strong></span>
+                            <span>{{ input_data.fuel_type }}</span>
+                        </div>
+                        <div class="input-item">
+                            <span><strong>Transmission:</strong></span>
+                            <span>{{ input_data.transmission }}</span>
+                        </div>
+                        <div class="input-item">
+                            <span><strong>Mileage:</strong></span>
+                            <span>{{ "{:,}".format(input_data.mileage|int) }} km</span>
+                        </div>
+                        <div class="input-item">
+                            <span><strong>Engine Size:</strong></span>
+                            <span>{{ input_data.engine_size }}L</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="form-section">
+                <h2 style="margin-bottom: 25px; color: #333;">Enter Car Details</h2>
+                <form method="POST" action="/predict">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="brand"><span class="icon">🏢</span>Brand</label>
+                            <select id="brand" name="brand" required>
+                                <option value="">Select Brand</option>
+                                {% for brand in brands %}
+                                <option value="{{ brand }}">{{ brand }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model_year"><span class="icon">📅</span>Model Year</label>
+                            <input type="number" id="model_year" name="model_year" 
+                                   min="2000" max="2025" placeholder="e.g., 2020" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fuel_type"><span class="icon">⛽</span>Fuel Type</label>
+                            <select id="fuel_type" name="fuel_type" required>
+                                <option value="">Select Fuel Type</option>
+                                {% for fuel in fuel_types %}
+                                <option value="{{ fuel }}">{{ fuel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="transmission"><span class="icon">⚙️</span>Transmission</label>
+                            <select id="transmission" name="transmission" required>
+                                <option value="">Select Transmission</option>
+                                {% for trans in transmissions %}
+                                <option value="{{ trans }}">{{ trans }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="mileage"><span class="icon">🛣️</span>Mileage (km)</label>
+                            <input type="number" id="mileage" name="mileage" 
+                                   min="0" step="1000" placeholder="e.g., 50000" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="engine_size"><span class="icon">🔧</span>Engine Size (L)</label>
+                            <input type="number" id="engine_size" name="engine_size" 
+                                   min="1.0" max="6.0" step="0.1" placeholder="e.g., 2.5" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">
+                        🔮 Predict Price
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by Machine Learning | {{ model_info.model_name if model_info else 'ML Model' }}</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">
+                Trained on {{ model_info.trained_date if model_info else 'synthetic dataset' }}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
